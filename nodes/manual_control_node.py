@@ -4,6 +4,7 @@ import std_msgs
 from pynput import keyboard
 
 
+# Allows manual control through keyboard inputs
 class ManualControlnode:
     def __init__(self):
         # Publisher to control the left wheel

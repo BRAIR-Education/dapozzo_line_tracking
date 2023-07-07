@@ -22,6 +22,7 @@ LOWER_YELLOW = (0, 10, 10)
 UPPER_YELLOW = (40, 255, 255)
 
 # Colors expressed in BGR format
+TRACK_OUTLINE_COLOR = (255, 255, 255)
 LEFT_LIMIT_COLOR = (255, 150, 0)
 RIGHT_LIMIT_COLOR = (0, 255, 255)
 CENTERLINE_COLOR = (0, 255, 0)
@@ -30,6 +31,7 @@ WAYPOINT_COLOR = (255, 255, 255)
 ERROR_COLOR = (0, 0, 255)
 
 
+# Performs track detection from raw camera input and publishes waypoint error data
 class CameraNode:
     def __init__(self, cv_bridge):
         self.cv_bridge = cv_bridge
@@ -39,100 +41,148 @@ class CameraNode:
             "/car/image_raw", sensor_msgs.msg.Image, self.camera_callback
         )
 
-        # Advertise
+        # Advertise waypoint distance
         self.error_pub = rospy.Publisher(
-            "/perception/waypoint_dist", std_msgs.msg.Float32
+            "/perception/waypoint_dist", std_msgs.msg.Float32, queue_size=1
         )
 
+        # TODO read from launch arguments
+        self.debug = True
+
+        print("Initialized!")
+
+    # Called upon receiving raw camera input
     def camera_callback(self, msg):
         start = time.time()
 
         image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        rows, cols, _ = image.shape
+        height, width, _ = image.shape
+
+        track_outline = self.get_track_outline(image)
+
+        # Crop image to remove unwanted border pixels and to ignore faraway parts of the track
+        cropped_outline = track_outline[
+            int(height / 2) : (height - 10), 10 : (width - 10)
+        ]
+        cr_height, cr_width = cropped_outline.shape
+
+        left_limit, right_limit = self.extract_track_limits(cropped_outline)
+        centerline = self.compute_centerline(left_limit, right_limit)
+
+        # Compute crosshair
+        center_x = math.floor(cr_width / 2)
+        center_y = math.floor(cr_height / 2)
+
+        # Detect waypoint (centerline point closest to crosshair)
+        waypoint, waypoint_dist = self.get_next_waypoint(
+            centerline, (center_x, center_y)
+        )
+
+        # Publish the distance between the projected waypoint and the crosshair
+        msg = std_msgs.msg.Float32()
+        msg.data = waypoint_dist
+        self.error_pub.publish(msg)
+
+        if self.debug:
+            self.display_data(
+                left_limit,
+                right_limit,
+                centerline,
+                (center_x, center_y),
+                waypoint,
+                cr_height,
+                cr_width,
+            )
+
+        end = time.time()
+        # print(end - start)
+
+    # Detect the track in the input image, draw its contour on a new binary image and return it
+    def get_track_outline(self, input):
+        height, width, _ = input.shape
+        track_outline = np.zeros((height, width), dtype=np.uint8)
 
         # Convert to HSV and threshold the image to extract the (yellow) track
-        hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
+        hsv = cv.cvtColor(input, cv.COLOR_BGR2HSV)
         mask = cv.inRange(hsv, np.array(LOWER_YELLOW), np.array(UPPER_YELLOW))
 
         # Detect track outline and draw it on a new image
         contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        track_outline = np.zeros((rows, cols), dtype=np.uint8)
-        cv.drawContours(track_outline, contours, 0, CROSSHAIR_COLOR)
+        cv.drawContours(track_outline, contours, 0, TRACK_OUTLINE_COLOR)
 
-        # Crop image to remove unwanted border pixels and to ignore faraway parts of the track
-        cropped_outline = track_outline[int(rows / 2) : (rows - 10), 10 : (cols - 10)]
-        cropped_original = image[int(rows / 2) : (rows - 10), 10 : (cols - 10)]
+        return track_outline
 
+    # Compute the centerline given the left and right track limits and return it
+    def compute_centerline(self, left, right):
+        centerline = []
+        for (x1, y1), (x2, y2) in list(zip(left, right)):
+            xc = math.floor((x1 + x2) / 2)
+            yc = math.floor((y1 + y2) / 2)
+
+            centerline.append((xc, yc))
+
+        return np.array(centerline)
+
+    # Return the left and right track limits from the provided track outline
+    def extract_track_limits(self, track_outline):
         # We expect 3 labels:
         #   0: background
         #   1: left track limit
         #   2: right track limit
-        _, labels = cv.connectedComponents(cropped_outline)
+        _, labels = cv.connectedComponents(track_outline)
 
-        final = np.zeros(cropped_original.shape, dtype=np.uint8)
-        cr_rows, cr_cols, _ = final.shape
-
-        # Draw left track limit
         left_limit_cols, left_limit_rows = np.where(labels == 1)
         left_limit = np.column_stack((left_limit_rows, left_limit_cols))[::10]
-        for i, point in enumerate(left_limit):
-            cv.circle(final, point, 1, LEFT_LIMIT_COLOR)
-            # cv.putText(final, str(i), point, cv.FONT_HERSHEY_PLAIN, 0.5, BLUE)
 
-        # Draw right track limit
         right_limit_cols, right_limit_rows = np.where(labels == 2)
         right_limit = np.column_stack((right_limit_rows, right_limit_cols))[::10]
-        for i, point in enumerate(right_limit):
-            cv.circle(final, point, 1, RIGHT_LIMIT_COLOR)
-            # cv.putText(final, str(i), point, cv.FONT_HERSHEY_PLAIN, 0.5, YELLOW)
 
-        # Compute and draw centerline
-        centerline = []
-        for i, ((x1, y1), (x2, y2)) in enumerate(list(zip(left_limit, right_limit))):
-            xc = math.floor((x1 + x2) / 2)
-            yc = math.floor((y1 + y2) / 2)
-            cv.circle(final, (xc, yc), 1, CENTERLINE_COLOR)
-            # cv.putText(
-            #     final, str(i), (xc, yc), cv.FONT_HERSHEY_PLAIN, 0.5, PURPLE
-            # )
+        return left_limit, right_limit
 
-            centerline.append((xc, yc))
+    # Obtain the next waypoint based on crosshair position
+    def get_next_waypoint(self, trajectory, crosshair):
+        if trajectory.size == 0:
+            return crosshair, 0
 
-        # Draw crosshair
-        center_x = math.floor(cr_cols / 2)
-        center_y = math.floor(cr_rows / 2)
-        cv.circle(final, (center_x, center_y), 1, CROSSHAIR_COLOR)
+        center_x, center_y = crosshair
 
-        # Detect waypoint (centerline point closest to crosshair)
         closest = 0
         closest_dist = float("inf")
-        for i, (x, y) in enumerate(centerline):
+        for i, (x, y) in enumerate(trajectory):
+            # Ignore waypoints below crosshair
+            if y > center_y - 30:
+                continue
+
             dist = math.sqrt(abs(x - center_x) ** 2 + abs(y - center_y) ** 2)
             if dist < closest_dist:
                 closest_dist = dist
                 closest = i
 
-        # Publish the distance between the projected waypoint and the crosshair
-        msg = std_msgs.msg.Float32()
-        msg.data = closest_dist
-        self.error_pub.publish(msg)
+        return trajectory[closest], closest_dist
 
-        # Draw line between crosshair and waypoint
-        cv.line(
-            final,
-            (centerline[closest][0], centerline[closest][1]),
-            (center_x, center_y),
-            ERROR_COLOR,
-        )
-        cv.circle(
-            final, (centerline[closest][0], centerline[closest][1]), 1, WAYPOINT_COLOR
-        )
+    # Visualize data for debugging purposes
+    def display_data(
+        self, left_limit, right_limit, centerline, crosshair, waypoint, height, width
+    ):
+        canvas = np.zeros((height, width, 3), dtype=np.uint8)
 
-        end = time.time()
-        print(end - start)
+        for point in left_limit:
+            cv.circle(canvas, point, 1, LEFT_LIMIT_COLOR, 1)
 
-        # cv.imshow("points", final)
-        # cv.waitKey(1)
+        for point in right_limit:
+            cv.circle(canvas, point, 1, RIGHT_LIMIT_COLOR, 1)
+
+        for point in centerline:
+            cv.circle(canvas, point, 1, CENTERLINE_COLOR, 1)
+
+        cv.circle(canvas, crosshair, 3, CROSSHAIR_COLOR)
+
+        cv.circle(canvas, waypoint, 3, WAYPOINT_COLOR)
+
+        cv.line(canvas, crosshair, waypoint, ERROR_COLOR, 1)
+
+        cv.imshow("Visualization", canvas)
+        cv.waitKey(1)
 
 
 if __name__ == "__main__":
