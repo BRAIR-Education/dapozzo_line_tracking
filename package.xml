@@ -24,6 +24,9 @@
 
   <!-- Dependencies -->
   <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>pynput-pip</exec_depend>
+
   <depend>rospy</depend>
   <depend>sensor_msgs</depend>
 
