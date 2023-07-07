@@ -31,12 +31,12 @@ WAYPOINT_COLOR = (255, 255, 255)
 ERROR_COLOR = (0, 0, 255)
 
 
-# Performs track detection from raw camera input and publishes waypoint error data
+# Performs track detection from raw camera images and publishes waypoint error data
 class CameraNode:
     def __init__(self, cv_bridge):
         self.cv_bridge = cv_bridge
 
-        # Subscribe to camera output
+        # Receive camera images
         self.camera_sub = rospy.Subscriber(
             "/car/image_raw", sensor_msgs.msg.Image, self.camera_callback
         )
