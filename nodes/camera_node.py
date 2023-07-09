@@ -41,9 +41,9 @@ class CameraNode:
             "/car/image_raw", sensor_msgs.msg.Image, self.camera_callback
         )
 
-        # Advertise waypoint distance
+        # Advertise waypoint x-axis offset
         self.error_pub = rospy.Publisher(
-            "/perception/waypoint_dist", std_msgs.msg.Float32, queue_size=1
+            "/perception/waypoint_offset", std_msgs.msg.Float32, queue_size=1
         )
 
         # TODO read from launch arguments
@@ -74,13 +74,13 @@ class CameraNode:
         center_y = math.floor(cr_height / 2)
 
         # Detect waypoint (centerline point closest to crosshair)
-        waypoint, waypoint_dist = self.get_next_waypoint(
+        waypoint, waypoint_offset = self.get_next_waypoint(
             centerline, (center_x, center_y)
         )
 
-        # Publish the distance between the projected waypoint and the crosshair
+        # Publish x-axis offset between the projected waypoint and the crosshair
         msg = std_msgs.msg.Float32()
-        msg.data = waypoint_dist
+        msg.data = waypoint_offset
         self.error_pub.publish(msg)
 
         if self.debug:
@@ -140,6 +140,7 @@ class CameraNode:
         return left_limit, right_limit
 
     # Obtain the next waypoint based on crosshair position
+    #   and return it along with its x-axis offset
     def get_next_waypoint(self, trajectory, crosshair):
         if trajectory.size == 0:
             return crosshair, 0
@@ -158,7 +159,7 @@ class CameraNode:
                 closest_dist = dist
                 closest = i
 
-        return trajectory[closest], closest_dist
+        return trajectory[closest], x - center_x
 
     # Visualize data for debugging purposes
     def display_data(
