@@ -31,14 +31,14 @@ class Controlnode:
             self.handle_offset_callback,
         )
 
-        # PID parameters
+        # PID parameters TODO: read from configuration file
         self.k_p = 0.01
 
         # Other PID variables
         self.setpoint = 0
         self.prev_error = 0
 
-        print("Initialized!")
+        rospy.loginfo("Initialized")
 
     # React to the current offset from the waypoint by returning
     #   a new control command

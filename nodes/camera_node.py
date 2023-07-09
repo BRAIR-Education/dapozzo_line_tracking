@@ -49,7 +49,7 @@ class CameraNode:
         # TODO read from launch arguments
         self.debug = True
 
-        print("Initialized!")
+        rospy.loginfo("Initialized!")
 
     # Called upon receiving raw camera input
     def camera_callback(self, msg):
@@ -95,7 +95,7 @@ class CameraNode:
             )
 
         end = time.time()
-        # print(end - start)
+        # rospy.loginfo(end - start)
 
     # Detect the track in the input image, draw its contour on a new binary image and return it
     def get_track_outline(self, input):

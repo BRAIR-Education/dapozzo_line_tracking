@@ -12,7 +12,11 @@ rosrun dapozzo_line_tracking camera_node.py
 ```
 
 ### Control Node
-TODO
+The control node uses a PID controller in order to accelerate and steer the car based on the provided waypoint x-axis offset.
+
+``` 
+rosrun dapozzo_line_tracking control_node.py
+```
 
 ### Manual Control Node
 The manual control node allows keyboard control of the car through the arrow keys. It can be launched as follows:
