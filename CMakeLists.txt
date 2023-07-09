@@ -16,5 +16,3 @@ catkin_install_python(PROGRAMS
   nodes/manual_control_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-catkin_python_setup()
