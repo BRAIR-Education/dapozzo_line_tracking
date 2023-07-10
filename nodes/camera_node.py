@@ -6,7 +6,6 @@ import cv2 as cv
 from cv_bridge import CvBridge
 
 import numpy as np
-import matplotlib.pyplot as plt
 import math
 
 import rospy

@@ -2,15 +2,22 @@
 Simulated line tracking robot developed for the final exam of the Robotics course at UniPi.
 
 ## Usage
-You can use the provided `full.launch` launch file to launch all nodes with one command:
+You can use the provided `full.launch` launch file to launch the simulation along with all nodes:
 
 ```
 roslaunch dapozzo_line_tracking full.launch
 ```
 
 The only available command line argument is `debug`, a boolean which decides whether to display debug data. Its default value is `False`, but it can be set to `True` like so:
+
 ```
 roslaunch dapozzo_line_tracking full.launch debug:=True
+```
+
+To visualize the logs created by the control node, start up `visualizer.py` as such:
+
+```
+rosrun dapozzo_line_tracking visualizer.py
 ```
 
 ## Nodes

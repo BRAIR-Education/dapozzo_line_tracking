@@ -25,5 +25,6 @@ catkin_install_python(PROGRAMS
   nodes/camera_node.py
   nodes/control_node.py
   nodes/manual_control_node.py
+  scripts/visualizer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

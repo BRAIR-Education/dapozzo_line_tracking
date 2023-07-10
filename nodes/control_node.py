@@ -1,6 +1,10 @@
+import os
 import time
+from datetime import datetime
+import csv
 
 import rospy
+import rospkg
 import std_msgs
 
 # Base wheel speed
@@ -10,6 +14,9 @@ BASE_SPEED = 3
 # Controls the car in order to approach a given waypoint.
 class ControlNode:
     def __init__(self):
+        self.rospack = rospkg.RosPack()
+        self.open_logfile()
+
         # Publisher to control the left wheel
         self.left_wheel_pub = rospy.Publisher(
             "/car/front_left_velocity_controller/command",
@@ -42,7 +49,11 @@ class ControlNode:
         self.setpoint = 0
         self.prev_error = 0
         self.accumulated_error = 0
-        self.time_prev = time.time()
+        self.time_start = time.time()
+        self.time_prev = self.time_start
+
+        self.log_interval = 0.1
+        self.last_log = self.time_start
 
         rospy.loginfo("Control node initialized!")
 
@@ -68,6 +79,7 @@ class ControlNode:
         self.accumulated_error += error
         self.time_prev = time_now
 
+        self.log_data(time_now - self.time_start, error)
         self.publish_wheel_control(control)
 
     # Publishe the provided control command
@@ -77,6 +89,22 @@ class ControlNode:
         self.left_wheel_pub.publish(msg)
         msg.data = -control + BASE_SPEED
         self.right_wheel_pub.publish(msg)
+
+    def open_logfile(self):
+        pkgdir = self.rospack.get_path("dapozzo_line_tracking")
+        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        filepath = os.path.join(pkgdir, "logs", f"pid_log_{date}.csv")
+
+        self.logfile = open(filepath, "w+")
+        self.logwriter = csv.writer(self.logfile)
+        field = ["Time", "Error"]
+        self.logwriter.writerow(field)
+
+    def log_data(self, elapsed, error):
+        if time.time() - self.last_log < self.log_interval:
+            return
+
+        self.logwriter.writerow([elapsed, error])
 
     # Stop the car
     def stop(self):
@@ -88,6 +116,7 @@ class ControlNode:
             self.left_wheel_pub.publish(msg)
             self.right_wheel_pub.publish(msg)
 
+        self.logfile.close()
         rospy.loginfo("Control node shutting down.")
 
 
