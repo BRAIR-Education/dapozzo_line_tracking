@@ -26,7 +26,7 @@ class ManualControlnode:
         )
         self.listener.start()
 
-        print("Initialized!")
+        rospy.loginfo("Manual control node initialized!")
 
     # Implements basic keyboard control
     def on_press(self, key):
@@ -65,3 +65,4 @@ if __name__ == "__main__":
     rospy.init_node("ManualControl")
     ManualControlnode()
     rospy.spin()
+    rospy.loginfo("Manual control node shutting down.")

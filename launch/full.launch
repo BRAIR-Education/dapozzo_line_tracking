@@ -1,0 +1,9 @@
+<launch>
+    <arg name="debug" default="False"/>
+
+    <include file="$(find dapozzo_line_tracking)/launch/camera.launch">
+        <arg name="debug" value="$(arg debug)"/>
+    </include>
+
+    <include file="$(find dapozzo_line_tracking)/launch/control.launch"></include>
+</launch>

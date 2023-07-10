@@ -3,12 +3,22 @@ project(dapozzo_line_tracking)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  std_msgs
   sensor_msgs
 )
 
 catkin_package(
   CATKIN_DEPENDS
+  std_msgs
   sensor_msgs
+)
+
+install(DIRECTORY config
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(DIRECTORY launch
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 catkin_install_python(PROGRAMS

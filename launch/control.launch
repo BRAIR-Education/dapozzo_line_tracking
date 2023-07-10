@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="dapozzo_line_tracking" name="ControlNode" type="control_node.py" ns="line_tracking">
+        <rosparam command="load" file="$(find dapozzo_line_tracking)/config/pid_params.yaml"/>
+    </node>
+</launch>

@@ -28,6 +28,7 @@
   <exec_depend>pynput-pip</exec_depend>
 
   <depend>rospy</depend>
+  <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
 
 

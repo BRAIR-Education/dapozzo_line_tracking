@@ -47,9 +47,9 @@ class CameraNode:
         )
 
         # TODO read from launch arguments
-        self.debug = True
+        self.debug = rospy.get_param("debug", False)
 
-        rospy.loginfo("Initialized!")
+        rospy.loginfo("Camera node initialized!")
 
     # Called upon receiving raw camera input
     def camera_callback(self, msg):
@@ -192,3 +192,4 @@ if __name__ == "__main__":
     rospy.init_node("Camera")
     CameraNode(cv_bridge)
     rospy.spin()
+    rospy.loginfo("Camera node shutting down.")

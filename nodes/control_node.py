@@ -31,10 +31,12 @@ class ControlNode:
             self.handle_offset_callback,
         )
 
-        # PID parameters TODO: read from configuration file
-        self.k_p = 0.01
-        self.k_i = 0.01
-        self.k_d = 0.01
+        # PID parameters
+        self.k_p = rospy.get_param("k_p", 0.01)
+        self.k_i = rospy.get_param("k_i", 0.01)
+        self.k_d = rospy.get_param("k_d", 0.01)
+
+        rospy.loginfo(f"PID params: {self.k_p}, {self.k_i}, {self.k_d}")
 
         # Other PID variables
         self.setpoint = 0
@@ -42,7 +44,7 @@ class ControlNode:
         self.accumulated_error = 0
         self.time_prev = time.time()
 
-        rospy.loginfo("Initialized!")
+        rospy.loginfo("Control node initialized!")
 
     # React to the current offset from the waypoint by returning
     #   a new control command
@@ -86,7 +88,7 @@ class ControlNode:
             self.left_wheel_pub.publish(msg)
             self.right_wheel_pub.publish(msg)
 
-        rospy.loginfo("Shutting down.")
+        rospy.loginfo("Control node shutting down.")
 
 
 if __name__ == "__main__":
