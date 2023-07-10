@@ -42,7 +42,7 @@ class ControlNode:
         self.accumulated_error = 0
         self.time_prev = time.time()
 
-        rospy.loginfo("Initialized")
+        rospy.loginfo("Initialized!")
 
     # React to the current offset from the waypoint by returning
     #   a new control command
@@ -76,8 +76,21 @@ class ControlNode:
         msg.data = -control + BASE_SPEED
         self.right_wheel_pub.publish(msg)
 
+    # Stop the car
+    def stop(self):
+        msg = std_msgs.msg.Float64()
+        msg.data = 0
+        # Send the messages multiple times since they are not
+        #   guaranteed to be delivered. Ugly, but it seems to work.
+        for _ in range(10):
+            self.left_wheel_pub.publish(msg)
+            self.right_wheel_pub.publish(msg)
+
+        rospy.loginfo("Shutting down.")
+
 
 if __name__ == "__main__":
     rospy.init_node("Control")
-    ControlNode()
+    node = ControlNode()
+    rospy.on_shutdown(node.stop)
     rospy.spin()
