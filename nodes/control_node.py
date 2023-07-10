@@ -6,7 +6,7 @@ import rospy
 import std_msgs
 
 # Base wheel speed
-BASE_SPEED = 5
+BASE_SPEED = 3
 
 
 # Controls the car in order to approach a given waypoint.
@@ -53,12 +53,12 @@ class ControlNode:
         time_now = time.time()
 
         error = self.setpoint - measurement
-        self.prev_error = error
 
         p_term = self.k_p * error
         d_term = self.k_d * (error - self.prev_error) / (time_now - self.time_prev)
         control = p_term + d_term
 
+        self.prev_error = error
         self.time_prev = time_now
 
         self.publish_wheel_control(control)
