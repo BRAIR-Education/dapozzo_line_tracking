@@ -1,8 +1,12 @@
+import time
+
+import sympy
+
 import rospy
 import std_msgs
 
 # Base wheel speed
-BASE_SPEED = 3
+BASE_SPEED = 5
 
 
 # Controls the car in order to approach a given waypoint.
@@ -33,10 +37,12 @@ class Controlnode:
 
         # PID parameters TODO: read from configuration file
         self.k_p = 0.01
+        self.k_d = 0.05
 
         # Other PID variables
         self.setpoint = 0
         self.prev_error = 0
+        self.time_prev = time.time()
 
         rospy.loginfo("Initialized")
 
@@ -44,19 +50,25 @@ class Controlnode:
     #   a new control command
     def handle_offset_callback(self, msg):
         measurement = msg.data
+        time_now = time.time()
 
         error = self.setpoint - measurement
         self.prev_error = error
 
-        control = self.k_p * measurement
+        p_term = self.k_p * error
+        d_term = self.k_d * (error - self.prev_error) / (time_now - self.time_prev)
+        control = p_term + d_term
+
+        self.time_prev = time_now
+
         self.publish_wheel_control(control)
 
     # Publishe the provided control command
     def publish_wheel_control(self, control):
         msg = std_msgs.msg.Float64()
-        msg.data = control + BASE_SPEED
-        self.left_wheel_pub.publish(msg)
         msg.data = -control + BASE_SPEED
+        self.left_wheel_pub.publish(msg)
+        msg.data = control + BASE_SPEED
         self.right_wheel_pub.publish(msg)
 
 
