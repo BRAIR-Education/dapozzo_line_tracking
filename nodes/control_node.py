@@ -12,7 +12,7 @@ BASE_SPEED = 5
 # Controls the car in order to approach a given waypoint.
 # TODO: currently it's just a proportional controller,
 #       the integral and derivative components will be added later
-class Controlnode:
+class ControlNode:
     def __init__(self):
         # Publisher to control the left wheel
         self.left_wheel_pub = rospy.Publisher(
@@ -74,5 +74,5 @@ class Controlnode:
 
 if __name__ == "__main__":
     rospy.init_node("Control")
-    Controlnode()
+    ControlNode()
     rospy.spin()
