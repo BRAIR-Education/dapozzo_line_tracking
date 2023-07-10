@@ -1,3 +1,5 @@
+<!-- Launches the camera node -->
+
 <launch>
     <arg name="debug" default="False"/>
 

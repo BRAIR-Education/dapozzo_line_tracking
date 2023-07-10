@@ -46,8 +46,8 @@ class CameraNode:
             "/perception/waypoint_offset", std_msgs.msg.Float32, queue_size=1
         )
 
-        # TODO read from launch arguments
-        self.debug = rospy.get_param("debug", False)
+        # Whether to print debug data or not
+        self.debug = rospy.get_param("/line_tracking/CameraNode/debug", False)
 
         rospy.loginfo("Camera node initialized!")
 
