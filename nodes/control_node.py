@@ -38,10 +38,16 @@ class ControlNode:
             self.handle_offset_callback,
         )
 
+        # Time to run for. Useful for doing multiple runs with the same duration.
+        #   -1 indicates no limit.
+        #   Note: this limit is only checked when doing a control iteration, so
+        #   if no input is received it may never be checked.
+        self.max_duration = rospy.get_param("/line_tracking/ControlNode/duration", -1)
+
         # PID parameters
         self.k_p = rospy.get_param("k_p", 0.01)
-        self.k_i = rospy.get_param("k_i", 0.01)
-        self.k_d = rospy.get_param("k_d", 0.01)
+        self.k_i = rospy.get_param("k_i", 0.00)
+        self.k_d = rospy.get_param("k_d", 0.00)
 
         rospy.loginfo(f"PID params: {self.k_p}, {self.k_i}, {self.k_d}")
 
@@ -62,6 +68,11 @@ class ControlNode:
     def handle_offset_callback(self, msg):
         measurement = msg.data
         time_now = time.time()
+
+        # Check if we should stop
+        if self.max_duration >= 0 and time_now - self.time_start > self.max_duration:
+            rospy.loginfo("Max duration reached.")
+            self.stop()
 
         # We consider the provided offset as the error we want to reduce to 0
         error = measurement
@@ -118,6 +129,7 @@ class ControlNode:
 
         self.logfile.close()
         rospy.loginfo("Control node shutting down.")
+        exit(0)
 
 
 if __name__ == "__main__":

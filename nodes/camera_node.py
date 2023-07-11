@@ -46,7 +46,7 @@ class CameraNode:
         )
 
         # Whether to print debug data or not
-        self.debug = rospy.get_param("/line_tracking/CameraNode/debug", False)
+        self.viz = rospy.get_param("/line_tracking/CameraNode/viz", False)
 
         rospy.loginfo("Camera node initialized!")
 
@@ -82,7 +82,7 @@ class CameraNode:
         msg.data = waypoint_offset
         self.error_pub.publish(msg)
 
-        if self.debug:
+        if self.viz:
             self.display_data(
                 left_limit,
                 right_limit,

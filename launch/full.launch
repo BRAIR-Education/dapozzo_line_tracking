@@ -1,15 +1,18 @@
 <!-- Launches the simulation as well as all the nodes needed for the car to race -->
 
 <launch>
-    <arg name="debug" default="False"/>
+    <arg name="viz" default="False"/>
+    <arg name="duration" default="-1"/>
 
     <!-- Perception -->
     <include file="$(find dapozzo_line_tracking)/launch/camera.launch">
-        <arg name="debug" value="$(arg debug)"/>
+        <arg name="viz" value="$(arg viz)"/>
     </include>
 
     <!-- Control -->
-    <include file="$(find dapozzo_line_tracking)/launch/control.launch"/>
+    <include file="$(find dapozzo_line_tracking)/launch/control.launch">
+        <arg name="duration" value="$(arg duration)"/>
+    </include>
 
     <!-- Simulation -->
     <include file="$(find line_tracking_race)/launch/race_track.launch"/> 
