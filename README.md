@@ -14,12 +14,6 @@ The only available command line argument is `debug`, a boolean which decides whe
 roslaunch dapozzo_line_tracking full.launch debug:=True
 ```
 
-To visualize the logs created by the control node, start up `visualizer.py` as such:
-
-```
-rosrun dapozzo_line_tracking visualizer.py
-```
-
 ## Nodes
 
 ### Camera Node
@@ -32,8 +26,11 @@ The control node uses a PID controller in order to accelerate and steer the car 
 Parameters (read from `config/pid_params.yaml`):
 - k_p: PID proportional gain;
 - k_i: PID integral gain;
-- k_d: PID derivative gain.
+- k_d: PID derivative gain. 
 
 
 ### Manual Control Node
 The manual control node allows keyboard control of the car through the arrow keys.
+
+## Logs
+Logs in `.csv` format can be found in the `logs` directory.
