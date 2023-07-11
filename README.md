@@ -31,3 +31,6 @@ The manual control node allows keyboard control of the car through the arrow key
 
 ## Logs
 Logs in `.csv` format can be found in the `logs` directory.
+
+## Plots
+Plots in `.png` format can be found in the `plots` directory.
