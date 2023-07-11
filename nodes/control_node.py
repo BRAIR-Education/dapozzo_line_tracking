@@ -14,9 +14,6 @@ BASE_SPEED = 3
 # Controls the car in order to approach a given waypoint.
 class ControlNode:
     def __init__(self):
-        self.rospack = rospkg.RosPack()
-        self.open_logfile()
-
         # Publisher to control the left wheel
         self.left_wheel_pub = rospy.Publisher(
             "/car/front_left_velocity_controller/command",
@@ -45,11 +42,15 @@ class ControlNode:
         self.max_duration = rospy.get_param("/line_tracking/ControlNode/duration", -1)
 
         # PID parameters
-        self.k_p = rospy.get_param("k_p", 0.01)
-        self.k_i = rospy.get_param("k_i", 0.00)
-        self.k_d = rospy.get_param("k_d", 0.00)
+        self.k_p = rospy.get_param("/line_tracking/ControlNode/k_p", 0.01)
+        self.k_i = rospy.get_param("/line_tracking/ControlNode/k_i", 0.00)
+        self.k_d = rospy.get_param("/line_tracking/ControlNode/k_d", 0.00)
 
         rospy.loginfo(f"PID params: {self.k_p}, {self.k_i}, {self.k_d}")
+
+        # Logging utilities
+        self.rospack = rospkg.RosPack()
+        self.open_logfile()
 
         # Other PID variables
         self.setpoint = 0
@@ -104,7 +105,8 @@ class ControlNode:
     def open_logfile(self):
         pkgdir = self.rospack.get_path("dapozzo_line_tracking")
         date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
-        filepath = os.path.join(pkgdir, "logs", f"pid_log_{date}.csv")
+        pid_params = f"{self.k_p}-{self.k_i}-{self.k_d}"
+        filepath = os.path.join(pkgdir, "logs", f"pid_log_{date}_[{pid_params}].csv")
 
         self.logfile = open(filepath, "w+")
         self.logwriter = csv.writer(self.logfile)
