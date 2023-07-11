@@ -14,27 +14,6 @@ BASE_SPEED = 3
 # Controls the car in order to approach a given waypoint.
 class ControlNode:
     def __init__(self):
-        # Publisher to control the left wheel
-        self.left_wheel_pub = rospy.Publisher(
-            "/car/front_left_velocity_controller/command",
-            std_msgs.msg.Float64,
-            queue_size=1,
-        )
-
-        # Publisher to control the right wheel
-        self.right_wheel_pub = rospy.Publisher(
-            "/car/front_right_velocity_controller/command",
-            std_msgs.msg.Float64,
-            queue_size=1,
-        )
-
-        # Subscriber to the x-axis offset of the waypoint
-        self.offset_sub = rospy.Subscriber(
-            "/perception/waypoint_offset",
-            std_msgs.msg.Float32,
-            self.handle_offset_callback,
-        )
-
         # Time to run for. Useful for doing multiple runs with the same duration.
         #   -1 indicates no limit.
         #   Note: this limit is only checked when doing a control iteration, so
@@ -61,6 +40,27 @@ class ControlNode:
 
         self.log_interval = 0.1
         self.last_log = self.time_start
+
+        # Publisher to control the left wheel
+        self.left_wheel_pub = rospy.Publisher(
+            "/car/front_left_velocity_controller/command",
+            std_msgs.msg.Float64,
+            queue_size=1,
+        )
+
+        # Publisher to control the right wheel
+        self.right_wheel_pub = rospy.Publisher(
+            "/car/front_right_velocity_controller/command",
+            std_msgs.msg.Float64,
+            queue_size=1,
+        )
+
+        # Subscriber to the x-axis offset of the waypoint
+        self.offset_sub = rospy.Subscriber(
+            "/perception/waypoint_offset",
+            std_msgs.msg.Float32,
+            self.handle_offset_callback,
+        )
 
         rospy.loginfo("Control node initialized!")
 
@@ -105,7 +105,7 @@ class ControlNode:
     def open_logfile(self):
         pkgdir = self.rospack.get_path("dapozzo_line_tracking")
         date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
-        pid_params = f"{self.k_p}-{self.k_i}-{self.k_d}"
+        pid_params = f"{self.k_p}-{self.k_i}-{self.k_d}".replace(".", ",")
         filepath = os.path.join(pkgdir, "logs", f"pid_log_{date}_[{pid_params}].csv")
 
         self.logfile = open(filepath, "w+")
@@ -131,7 +131,7 @@ class ControlNode:
 
         self.logfile.close()
         rospy.loginfo("Control node shutting down.")
-        exit(0)
+        rospy.signal_shutdown("Duration limit reached.")
 
 
 if __name__ == "__main__":
