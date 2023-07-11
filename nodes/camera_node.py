@@ -52,7 +52,7 @@ class CameraNode:
 
     # Called upon receiving raw camera input
     def camera_callback(self, msg):
-        start = time.time()
+        # start = time.time()
 
         image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         height, width, _ = image.shape
@@ -67,6 +67,10 @@ class CameraNode:
 
         left_limit, right_limit = self.extract_track_limits(cropped_outline)
         centerline = self.compute_centerline(left_limit, right_limit)
+
+        if left_limit.size == 0 or right_limit.size == 0:
+            rospy.logwarn("WARNING: empty track limit")
+            return
 
         # Compute crosshair
         center_x = math.floor(cr_width / 2)
@@ -93,7 +97,7 @@ class CameraNode:
                 cr_width,
             )
 
-        end = time.time()
+        # end = time.time()
         # rospy.loginfo(end - start)
 
     # Detect the track in the input image, draw its contour on a new binary image and return it
