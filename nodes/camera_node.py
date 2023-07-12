@@ -17,8 +17,8 @@ import std_msgs
 MAX_HUE = 179
 
 # HSV thresholds
-LOWER_YELLOW = (0, 10, 10)
-UPPER_YELLOW = (40, 255, 255)
+LOWER_YELLOW = (20, 50, 50)
+UPPER_YELLOW = (30, 255, 255)
 
 # Colors expressed in BGR format
 TRACK_OUTLINE_COLOR = (255, 255, 255)
