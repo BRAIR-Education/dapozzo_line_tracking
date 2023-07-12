@@ -53,8 +53,6 @@ class CameraNode:
 
         image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         height, width, _ = image.shape
-        image = image[int(height / 2) : height, 200 : width - 200]
-        height, width, _ = image.shape
 
         # Convert to HSV and threshold the image to extract the (yellow) track
         hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
@@ -62,13 +60,17 @@ class CameraNode:
 
         contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
+        if contours.count != 1:
+            rospy.loginfo(f"Unexpected number of contours: {contours.count}")
+
         # Compute centroid
         M = cv.moments(contours[0])
         if M["m00"] != 0:
             centroid_x = int(M["m10"] / M["m00"])
             centroid_y = int(M["m01"] / M["m00"])
         else:
-            centroid_x, centroid_y = 0, 0
+            rospy.logwarn("No centroid found, skipping.")
+            return
 
         # Compute crosshair
         center_x = math.floor(width / 2)
