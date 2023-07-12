@@ -7,8 +7,11 @@ import rospy
 import rospkg
 import std_msgs
 
-# Base wheel speed
-BASE_SPEED = 3
+# Wheel speed
+BASE_SPEED = 10
+
+MIN_CONTROL = -4
+MAX_CONTROL = 4
 
 
 # Controls the car in order to approach a given waypoint.
@@ -35,8 +38,10 @@ class ControlNode:
         self.setpoint = 0
         self.prev_error = 0
         self.accumulated_integral = 0
-        self.time_start = time.time()
-        self.time_prev = self.time_start
+        self.time_start = 0
+        self.time_prev = 0
+
+        self.started = False
 
         self.log_interval = 0.1
         self.last_log = self.time_start
@@ -70,8 +75,16 @@ class ControlNode:
         measurement = msg.data
         time_now = time.time()
 
+        if self.started == False:
+            self.time_start = time_now
+            self.time_prev = time_now
+            self.started = True
+            return
+
+        elapsed = time_now - self.time_start
+
         # Check if we should stop
-        if self.max_duration >= 0 and time_now - self.time_start > self.max_duration:
+        if self.max_duration >= 0 and elapsed > self.max_duration:
             rospy.loginfo("Max duration reached.")
             self.stop()
 
@@ -79,7 +92,7 @@ class ControlNode:
         error = measurement
         dt = time_now - self.time_prev
 
-        if dt == 0:
+        if dt <= 0:
             return
 
         self.accumulated_integral += error * dt
@@ -92,7 +105,14 @@ class ControlNode:
         self.prev_error = error
         self.time_prev = time_now
 
-        self.log_data(time_now - self.time_start, error, control)
+        if control > MAX_CONTROL:
+            rospy.logwarn("Output saturated! (HIGH)")
+            control = MAX_CONTROL
+        elif control < MIN_CONTROL:
+            rospy.logwarn("Output saturated! (LOW)")
+            control = MIN_CONTROL
+
+        self.log_data(elapsed, dt, error, control, p_term, i_term, d_term)
         self.publish_wheel_control(control)
 
     # Publishe the provided control command
@@ -111,14 +131,26 @@ class ControlNode:
 
         self.logfile = open(filepath, "w+")
         self.logwriter = csv.writer(self.logfile)
-        field = ["Time", "Error", "CV"]
+        field = ["Time", "dt", "Error", "CV", "LWheel", "RWheel", "P", "I", "D"]
         self.logwriter.writerow(field)
 
-    def log_data(self, elapsed, error, control):
+    def log_data(self, elapsed, dt, error, control, p_term, i_term, d_term):
         if time.time() - self.last_log < self.log_interval:
             return
 
-        self.logwriter.writerow([elapsed, error, control])
+        self.logwriter.writerow(
+            [
+                elapsed,
+                dt,
+                error,
+                control,
+                control + BASE_SPEED,
+                -control + BASE_SPEED,
+                p_term,
+                i_term,
+                d_term,
+            ]
+        )
 
     # Stop the car
     def stop(self):
