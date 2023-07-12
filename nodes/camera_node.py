@@ -17,8 +17,8 @@ import std_msgs
 MAX_HUE = 179
 
 # HSV thresholds
-LOWER_YELLOW = (0, 10, 10)
-UPPER_YELLOW = (40, 255, 255)
+LOWER_YELLOW = (20, 50, 50)
+UPPER_YELLOW = (30, 255, 255)
 
 # Colors expressed in BGR format
 TRACK_OUTLINE_COLOR = (255, 0, 255)
@@ -60,8 +60,9 @@ class CameraNode:
 
         contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
-        if contours.count != 1:
-            rospy.loginfo(f"Unexpected number of contours: {contours.count}")
+        if len(contours) != 1:
+            rospy.loginfo(f"Unexpected number of contours: {len(contours)}")
+            return
 
         # Compute centroid
         M = cv.moments(contours[0])
