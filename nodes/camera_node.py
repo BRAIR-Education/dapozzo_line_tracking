@@ -45,6 +45,9 @@ class CameraNode:
         # Whether to print debug data or not
         self.viz = rospy.get_param("/line_tracking/CameraNode/viz", False)
 
+        self.prev_centroid_x = 0
+        self.prev_centroid_y = 0
+
         rospy.loginfo("Camera node initialized!")
 
     # Called upon receiving raw camera input
@@ -60,8 +63,8 @@ class CameraNode:
 
         contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
-        if len(contours) != 1:
-            rospy.loginfo(f"Unexpected number of contours: {len(contours)}")
+        if len(contours) < 1:
+            rospy.logwarn(f"No contours found, skipping.")
             return
 
         # Compute centroid
@@ -70,7 +73,9 @@ class CameraNode:
             centroid_x = int(M["m10"] / M["m00"])
             centroid_y = int(M["m01"] / M["m00"])
         else:
-            rospy.logwarn("No centroid found, skipping.")
+            rospy.logwarn("No centroid found, reusing previous waypoint.")
+            centroid_x = self.prev_centroid_x
+            centroid_y = self.prev_centroid_y
             return
 
         # Compute crosshair
