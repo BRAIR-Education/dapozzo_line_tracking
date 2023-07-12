@@ -34,7 +34,7 @@ class ControlNode:
         # Other PID variables
         self.setpoint = 0
         self.prev_error = 0
-        self.accumulated_error = 0
+        self.accumulated_integral = 0
         self.time_start = time.time()
         self.time_prev = self.time_start
 
@@ -82,16 +82,17 @@ class ControlNode:
         if dt == 0:
             return
 
+        self.accumulated_integral += error * dt
+
         p_term = self.k_p * error
-        i_term = self.k_i * self.accumulated_error * dt
+        i_term = self.k_i * self.accumulated_integral
         d_term = self.k_d * (error - self.prev_error) / dt
         control = p_term + i_term + d_term
 
         self.prev_error = error
-        self.accumulated_error += error
         self.time_prev = time_now
 
-        self.log_data(time_now - self.time_start, error)
+        self.log_data(time_now - self.time_start, error, control)
         self.publish_wheel_control(control)
 
     # Publishe the provided control command
@@ -110,14 +111,14 @@ class ControlNode:
 
         self.logfile = open(filepath, "w+")
         self.logwriter = csv.writer(self.logfile)
-        field = ["Time", "Error"]
+        field = ["Time", "Error", "CV"]
         self.logwriter.writerow(field)
 
-    def log_data(self, elapsed, error):
+    def log_data(self, elapsed, error, control):
         if time.time() - self.last_log < self.log_interval:
             return
 
-        self.logwriter.writerow([elapsed, error])
+        self.logwriter.writerow([elapsed, error, control])
 
     # Stop the car
     def stop(self):
