@@ -8,7 +8,7 @@ import rospkg
 import std_msgs
 
 # Wheel speed
-BASE_SPEED = 10
+BASE_SPEED = 13
 
 MIN_CONTROL = -4
 MAX_CONTROL = 4
