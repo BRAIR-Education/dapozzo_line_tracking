@@ -64,7 +64,7 @@ class CameraNode:
 
         # Crop image to remove unwanted border pixels and to ignore faraway parts of the track
         cropped_outline = track_outline[
-            int(height / 2) : (height - 10), 10 : (width - 10)
+            int(height / 2) : (height - 10), 100 : (width - 100)
         ]
         cr_height, cr_width = cropped_outline.shape
 
