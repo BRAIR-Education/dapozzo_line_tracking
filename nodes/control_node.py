@@ -127,7 +127,9 @@ class ControlNode:
         pkgdir = self.rospack.get_path("dapozzo_line_tracking")
         date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         pid_params = f"{self.k_p}-{self.k_i}-{self.k_d}".replace(".", ",")
-        filepath = os.path.join(pkgdir, "logs", f"pid_log_{date}_[{pid_params}].csv")
+        filepath = os.path.join(
+            pkgdir, "logs", f"OLD_pid_log_{date}_[{pid_params}].csv"
+        )
 
         self.logfile = open(filepath, "w+")
         self.logwriter = csv.writer(self.logfile)
