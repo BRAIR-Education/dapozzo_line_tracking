@@ -85,6 +85,9 @@ class CameraNode:
                 centerline, (center_x, center_y)
             )
 
+            self.prev_waypoint = waypoint
+            self.prev_offset = waypoint_offset
+
         # Publish x-axis offset between the projected waypoint and the crosshair
         msg = std_msgs.msg.Float32()
         msg.data = waypoint_offset
