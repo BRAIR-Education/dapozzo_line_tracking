@@ -38,8 +38,8 @@ class CameraNode:
         )
 
         # Advertise waypoint x-axis offset
-        self.error_pub = rospy.Publisher(
-            "/perception/waypoint_offset", std_msgs.msg.Float32, queue_size=1
+        self.angle_pub = rospy.Publisher(
+            "/perception/waypoint_angle", std_msgs.msg.Float32, queue_size=1
         )
 
         # Whether to print debug data or not
@@ -85,10 +85,16 @@ class CameraNode:
         center_x = math.floor(width / 2)
         center_y = math.floor(height / 2)
 
-        # Publish x-axis offset between the centroid and the crosshair
+        dist = math.sqrt(
+            (centroid_x - center_x) ** 2 + (centroid_y - (height - 1)) ** 2
+        )
+        angle = math.asin((centroid_x - center_x) / dist)
+        angle_deg = angle * 180 / math.pi
+
+        # Publish angle between centroid and heading
         msg = std_msgs.msg.Float32()
-        msg.data = centroid_x - center_x
-        self.error_pub.publish(msg)
+        msg.data = angle_deg
+        self.angle_pub.publish(msg)
 
         if self.viz:
             self.display_data(
@@ -96,20 +102,24 @@ class CameraNode:
                 contours,
                 (centroid_x, centroid_y),
                 (center_x, center_y),
+                (center_x, height - 1),
+                angle_deg,
             )
 
         # end = time.time()
         # rospy.loginfo(end - start)
 
     # Visualize data for debugging purposes
-    def display_data(self, image, contours, centroid, crosshair):
+    def display_data(self, image, contours, centroid, crosshair, self_pos, angle):
         cv.drawContours(image, contours, -1, TRACK_OUTLINE_COLOR, 2)
 
         cv.circle(image, centroid, 5, CENTROID_COLOR, 2)
 
         cv.circle(image, crosshair, 5, CROSSHAIR_COLOR, 2)
 
-        cv.line(image, centroid, crosshair, ERROR_COLOR, 2)
+        cv.ellipse(image, self_pos, (60, 60), 180, 90, 90 + angle, ERROR_COLOR, 2)
+        cv.line(image, self_pos, centroid, ERROR_COLOR, 2)
+        cv.line(image, self_pos, crosshair, ERROR_COLOR, 2)
 
         cv.imshow("Visualization", image)
         cv.waitKey(1)
