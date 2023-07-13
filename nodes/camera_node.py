@@ -48,6 +48,9 @@ class CameraNode:
         # Whether to print debug data or not
         self.viz = rospy.get_param("/line_tracking/CameraNode/viz", False)
 
+        self.prev_offset = 0
+        self.prev_waypoint = (0, 0)
+
         rospy.loginfo("Camera node initialized!")
 
     # Called upon receiving raw camera input
@@ -68,18 +71,19 @@ class CameraNode:
         left_limit, right_limit = self.extract_track_limits(cropped_outline)
         centerline = self.compute_centerline(left_limit, right_limit)
 
-        if left_limit.size == 0 or right_limit.size == 0:
-            rospy.logwarn("WARNING: empty track limit")
-            return
-
         # Compute crosshair
         center_x = math.floor(cr_width / 2)
         center_y = math.floor(cr_height / 2)
 
-        # Detect waypoint (centerline point closest to crosshair)
-        waypoint, waypoint_offset = self.get_next_waypoint(
-            centerline, (center_x, center_y)
-        )
+        if left_limit.size == 0 or right_limit.size == 0:
+            rospy.logwarn("Can't compute centerline, reusing previous waypoint.")
+            waypoint = self.prev_waypoint
+            waypoint_offset = self.prev_offset
+        else:
+            # Detect waypoint (centerline point closest to crosshair)
+            waypoint, waypoint_offset = self.get_next_waypoint(
+                centerline, (center_x, center_y)
+            )
 
         # Publish x-axis offset between the projected waypoint and the crosshair
         msg = std_msgs.msg.Float32()
