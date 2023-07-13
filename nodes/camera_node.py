@@ -72,6 +72,9 @@ class CameraNode:
         if M["m00"] != 0:
             centroid_x = int(M["m10"] / M["m00"])
             centroid_y = int(M["m01"] / M["m00"])
+
+            self.prev_centroid_x = centroid_x
+            self.prev_centroid_y = centroid_y
         else:
             rospy.logwarn("No centroid found, reusing previous waypoint.")
             centroid_x = self.prev_centroid_x
