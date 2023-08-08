@@ -6,7 +6,11 @@ import rospy
 import rospkg
 import std_msgs
 
-THRUST = 23
+MAX_THRUST = 10
+RAMP_UP = 0.1
+
+MAX_TURNING_THRUST = 5
+TURNING_THRUST_RAMP_UP = 0.5
 
 
 # Controls the car in order to approach a given waypoint.
@@ -36,6 +40,8 @@ class ControlNode:
         self.time_start = 0
         self.time_prev = 0
 
+        self.thrust = 0
+
         self.started = False
 
         # Publisher to control the left wheel
@@ -52,9 +58,9 @@ class ControlNode:
             queue_size=10,
         )
 
-        # Subscriber to the x-axis offset of the waypoint
+        # Subscriber to the error
         self.angle_sub = rospy.Subscriber(
-            "/perception/waypoint_angle",
+            "/planning/error",
             std_msgs.msg.Float32,
             self.handle_error_callback,
         )
@@ -83,7 +89,6 @@ class ControlNode:
             rospy.logwarn("Max duration reached.")
             self.stop()
 
-        # We consider the provided angle as the error we want to reduce to 0
         error = measurement
         dt = (time_now - self.time_prev).to_sec()
 
@@ -100,26 +105,16 @@ class ControlNode:
         self.prev_error = error
         self.time_prev = time_now
 
-        if control > 90:
-            rospy.logwarn("Output saturated! (HIGH)")
-            control = 90
-        elif control < -90:
-            rospy.logwarn("Output saturated! (LOW)")
-            control = -90
+        # TODO: output saturation checks?
 
-        v_l, v_r = self.angle_to_thrust(control)
+        if self.thrust < MAX_THRUST:
+            self.thrust += RAMP_UP
+
+        v_l = self.thrust + self.thrust * control
+        v_r = self.thrust - self.thrust * control
 
         self.log_data(elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term)
         self.publish_wheel_control(v_l, v_r)
-
-    def angle_to_thrust(self, theta):
-        # map the angle from [-90, 90] to a value [0, 1]
-        thrust_balance = (theta + 90) / 180
-
-        v_l = THRUST * thrust_balance
-        v_r = THRUST * (1 - thrust_balance)
-
-        return v_l, v_r
 
     # Publish the provided control command
     def publish_wheel_control(self, v_l, v_r):
