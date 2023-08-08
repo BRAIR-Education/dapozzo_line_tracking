@@ -1,0 +1,9 @@
+<!-- Launches the planner node -->
+
+<launch>
+    <arg name="viz" default="False"/>
+
+    <node pkg="dapozzo_line_tracking" name="PlannerNode" type="planner_node.py" ns="line_tracking">
+        <param name="viz" value="$(arg viz)"/>
+    </node>
+</launch>

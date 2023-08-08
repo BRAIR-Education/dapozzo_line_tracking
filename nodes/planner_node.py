@@ -28,7 +28,7 @@ ERROR_COLOR = (0, 0, 255)
 
 
 # Performs track detection from raw camera images and publishes waypoint error data
-class CameraNode:
+class PlannerNode:
     def __init__(self, cv_bridge):
         self.cv_bridge = cv_bridge
 
@@ -42,13 +42,16 @@ class CameraNode:
             "/perception/waypoint_angle", std_msgs.msg.Float32, queue_size=1
         )
 
+        # Type of path planning approach to use
+        planning_type = rospy.get_param("/line_tracking/PlannerNode/")
+
         # Whether to print debug data or not
-        self.viz = rospy.get_param("/line_tracking/CameraNode/viz", False)
+        self.viz = rospy.get_param("/line_tracking/PlannerNode/viz", False)
 
         self.prev_centroid_x = 0
         self.prev_centroid_y = 0
 
-        rospy.loginfo("Camera node initialized!")
+        rospy.loginfo("Planner node initialized!")
 
     # Called upon receiving raw camera input
     def camera_callback(self, msg):
@@ -128,7 +131,7 @@ class CameraNode:
 if __name__ == "__main__":
     cv_bridge = CvBridge()
 
-    rospy.init_node("Camera")
-    CameraNode(cv_bridge)
+    rospy.init_node("Planner")
+    PlannerNode(cv_bridge)
     rospy.spin()
-    rospy.loginfo("Camera node shutting down.")
+    rospy.loginfo("Planner node shutting down.")

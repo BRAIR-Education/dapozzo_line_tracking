@@ -1,9 +1,0 @@
-<!-- Launches the camera node -->
-
-<launch>
-    <arg name="viz" default="False"/>
-
-    <node pkg="dapozzo_line_tracking" name="CameraNode" type="camera_node.py" ns="line_tracking">
-        <param name="viz" value="$(arg viz)"/>
-    </node>
-</launch>

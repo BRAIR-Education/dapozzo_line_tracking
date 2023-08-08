@@ -12,8 +12,8 @@ Remember that you can pass launch arguments with the `name:=value` syntax. Consu
 
 ## Nodes
 
-### Camera Node
-The camera node extracts track information from raw camera images. A launch file (`camera.launch`) is provided.
+### Planner Node
+The planner node extracts track information from raw camera images. A launch file (`planner.launch`) is provided.
 Parameters:
 - viz (True | <u>False</u>).
 
