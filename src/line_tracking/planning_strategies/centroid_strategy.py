@@ -84,7 +84,7 @@ class CentroidStrategy:
                 (centroid_x, centroid_y), (position_x, position_y)
             )
         else:
-            rospy.logerr(f"Unknown error type {self.error_type}. Exiting")
+            rospy.logerr(f"Unknown error type. Exiting")
             rospy.signal_shutdown("")
 
         # ugly beyond reason
