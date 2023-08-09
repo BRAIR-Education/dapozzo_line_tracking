@@ -6,11 +6,10 @@ import rospy
 import rospkg
 import std_msgs
 
-MAX_THRUST = 10
-RAMP_UP = 0.1
+MAX_THRUST = 15
+RAMP_UP = 0.5
 
-MAX_TURNING_THRUST = 5
-TURNING_THRUST_RAMP_UP = 0.5
+TURNING_THRUST = 5
 
 
 # Controls the car in order to approach a given waypoint.
@@ -110,8 +109,8 @@ class ControlNode:
         if self.thrust < MAX_THRUST:
             self.thrust += RAMP_UP
 
-        v_l = self.thrust + self.thrust * control
-        v_r = self.thrust - self.thrust * control
+        v_l = self.thrust + TURNING_THRUST * control
+        v_r = self.thrust - TURNING_THRUST * control
 
         self.log_data(elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term)
         self.publish_wheel_control(v_l, v_r)

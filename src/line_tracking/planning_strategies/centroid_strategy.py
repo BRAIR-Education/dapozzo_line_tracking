@@ -20,7 +20,7 @@ TRACK_OUTLINE_COLOR = (255, 0, 255)
 CROSSHAIR_COLOR = (255, 255, 255)
 CENTROID_COLOR = (255, 255, 255)
 ERROR_COLOR = (0, 0, 255)
-ERROR_AUX_COLOR = (0, 0, 0)
+ERROR_AUX_COLOR = (255, 255, 255)
 
 
 # This planning strategy revolves around finding the centroid
@@ -130,15 +130,15 @@ class CentroidStrategy:
                     image,
                     (position_x, position_y),
                     (centroid_x, centroid_y),
-                    ERROR_COLOR,
-                    2,
+                    ERROR_AUX_COLOR,
+                    1,
                 )
                 cv.line(
                     image,
                     (position_x, position_y),
                     (center_x, center_y),
-                    ERROR_COLOR,
-                    2,
+                    ERROR_AUX_COLOR,
+                    1,
                 )
 
             cv.imshow("Visualization", image)

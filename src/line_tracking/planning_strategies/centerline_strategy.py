@@ -54,6 +54,10 @@ class CenterlineStrategy:
         center_x = math.floor(cr_width / 2)
         center_y = math.floor(cr_height / 2)
 
+        # Compute (very rough) position
+        position_x = center_x
+        position_y = cr_height - 1
+
         if left_limit.size == 0 or right_limit.size == 0:
             rospy.logwarn("Can't compute centerline, reusing previous waypoint.")
             waypoint = self.prev_waypoint
@@ -72,7 +76,7 @@ class CenterlineStrategy:
                 waypoint, (center_x, center_y), cr_width / 2
             )
         elif self.error_type == ErrorType.ANGLE:
-            pass  # TODO
+            err, angle = self.compute_angle_error(waypoint, (position_x, position_y))
         else:
             rospy.logerr(f"Unknown error type. Exiting")
             rospy.signal_shutdown("")
@@ -118,7 +122,30 @@ class CenterlineStrategy:
                 )
 
             elif self.error_type == ErrorType.ANGLE:
-                pass  # TODO
+                cv.ellipse(
+                    canvas,
+                    (position_x, position_y),
+                    (60, 60),
+                    180,
+                    90,
+                    90 + angle,
+                    ERROR_COLOR,
+                    2,
+                )
+                cv.line(
+                    canvas,
+                    (position_x, position_y),
+                    waypoint,
+                    ERROR_AUX_COLOR,
+                    1,
+                )
+                cv.line(
+                    canvas,
+                    (position_x, position_y),
+                    (center_x, center_y),
+                    ERROR_AUX_COLOR,
+                    1,
+                )
 
             cv.imshow("Visualization", canvas)
             cv.waitKey(1)
