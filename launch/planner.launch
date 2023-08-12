@@ -3,7 +3,7 @@
 <launch>
     <arg name="viz" default="False"/>
     <arg name="strategy" default="centroid"/>
-    <arg name="error_type" default="offset"/>
+    <arg name="error_type" default="angle"/>
 
     <node pkg="dapozzo_line_tracking" name="PlannerNode" type="planner_node.py" ns="line_tracking">
         <param name="viz" value="$(arg viz)"/>
