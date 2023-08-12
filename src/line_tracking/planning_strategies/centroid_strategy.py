@@ -7,6 +7,7 @@ from cv_bridge import CvBridge
 import rospy
 
 from line_tracking.planning_strategies.error_type import ErrorType
+from line_tracking.visualizer import Visualizer
 
 # In OpenCV, hue ranges from 0 to 179
 MAX_HUE = 179
@@ -15,20 +16,17 @@ MAX_HUE = 179
 LOWER_YELLOW = (20, 50, 50)
 UPPER_YELLOW = (30, 255, 255)
 
-# Colors expressed in BGR format
-TRACK_OUTLINE_COLOR = (255, 0, 255)
-CROSSHAIR_COLOR = (255, 255, 255)
-CENTROID_COLOR = (255, 255, 255)
-ERROR_COLOR = (0, 0, 255)
-ERROR_AUX_COLOR = (255, 255, 255)
-
 
 # This planning strategy revolves around finding the centroid
 #  of the track at each iteration and using it as waypoint.
 class CentroidStrategy:
-    def __init__(self, error_type, viz):
+    def __init__(self, error_type, should_visualize):
         self.error_type = error_type
-        self.viz = viz
+
+        if should_visualize:
+            self.viz = Visualizer()
+        else:
+            self.viz = None
 
         self.cv_bridge = CvBridge()
 
@@ -57,92 +55,39 @@ class CentroidStrategy:
         # Compute centroid
         M = cv.moments(contours[0])
         if M["m00"] != 0:
-            centroid_x = int(M["m10"] / M["m00"])
-            centroid_y = int(M["m01"] / M["m00"])
-
-            self.prev_centroid_x = centroid_x
-            self.prev_centroid_y = centroid_y
+            centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            self.prev_centroid = centroid
         else:
             rospy.logwarn("No centroid found, reusing previous waypoint.")
-            centroid_x = self.prev_centroid_x
-            centroid_y = self.prev_centroid_y
+            centroid = self.prev_centroid
 
         # Compute crosshair
-        center_x = math.floor(width / 2)
-        center_y = math.floor(height / 2)
+        crosshair = (math.floor(width / 2), math.floor(height / 2))
 
         # Compute (very rough) position
-        position_x = center_x
-        position_y = height - 1
+        position = (math.floor(width / 2), height - 1)
 
         if self.error_type == ErrorType.OFFSET:
-            err, offset = self.compute_offset_error(
-                (centroid_x, centroid_y), (center_x, center_y), width / 2
-            )
+            err, offset = self.compute_offset_error(centroid, crosshair, width / 2)
         elif self.error_type == ErrorType.ANGLE:
-            err, angle = self.compute_angle_error(
-                (centroid_x, centroid_y), (position_x, position_y)
-            )
+            err, angle = self.compute_angle_error(centroid, position)
         else:
             rospy.logerr(f"Unknown error type. Exiting")
             rospy.signal_shutdown("")
 
-        # ugly beyond reason
-        if self.viz:
-            cv.drawContours(image, contours, -1, TRACK_OUTLINE_COLOR, 2)
-            cv.circle(image, (centroid_x, centroid_y), 5, CENTROID_COLOR, 2)
-            cv.circle(image, (center_x, center_y), 5, CROSSHAIR_COLOR, 2)
+            # Visualize data
+        if self.viz is not None:
+            self.viz.build_contour_bg(image, contours)
 
             if self.error_type == ErrorType.OFFSET:
-                cv.line(
-                    image,
-                    (center_x, center_y),
-                    (centroid_x, centroid_y),
-                    ERROR_AUX_COLOR,
-                    1,
-                )
-                cv.line(
-                    image,
-                    (center_x, center_y),
-                    (center_x, centroid_y),
-                    ERROR_AUX_COLOR,
-                    1,
-                )
-                cv.line(
-                    image,
-                    (center_x, centroid_y),
-                    (centroid_x, centroid_y),
-                    ERROR_COLOR,
-                    2,
-                )
+                self.viz.build_offset_error_overlay(crosshair, centroid)
             elif self.error_type == ErrorType.ANGLE:
-                cv.ellipse(
-                    image,
-                    (position_x, position_y),
-                    (60, 60),
-                    180,
-                    90,
-                    90 + angle,
-                    ERROR_COLOR,
-                    2,
-                )
-                cv.line(
-                    image,
-                    (position_x, position_y),
-                    (centroid_x, centroid_y),
-                    ERROR_AUX_COLOR,
-                    1,
-                )
-                cv.line(
-                    image,
-                    (position_x, position_y),
-                    (center_x, center_y),
-                    ERROR_AUX_COLOR,
-                    1,
-                )
+                self.viz.build_angle_error_overlay(crosshair, centroid, position, angle)
+            else:
+                rospy.logerr(f"Unknown error type. Exiting")
+                rospy.signal_shutdown("")
 
-            cv.imshow("Visualization", image)
-            cv.waitKey(1)
+            self.viz.show()
 
         return err
 

@@ -7,6 +7,8 @@ from cv_bridge import CvBridge
 import rospy
 
 from line_tracking.planning_strategies.error_type import ErrorType
+from line_tracking.visualizer import Visualizer
+import line_tracking.colors as colors
 
 # In OpenCV hue ranges from 0 to 179
 MAX_HUE = 179
@@ -15,21 +17,15 @@ MAX_HUE = 179
 LOWER_YELLOW = (20, 50, 50)
 UPPER_YELLOW = (30, 255, 255)
 
-# Colors expressed in BGR format
-TRACK_OUTLINE_COLOR = (255, 255, 255)
-LEFT_LIMIT_COLOR = (255, 150, 0)
-RIGHT_LIMIT_COLOR = (0, 255, 255)
-CENTERLINE_COLOR = (0, 255, 0)
-CROSSHAIR_COLOR = (255, 255, 255)
-WAYPOINT_COLOR = (255, 255, 255)
-ERROR_COLOR = (0, 0, 255)
-ERROR_AUX_COLOR = (255, 255, 255)
-
 
 class CenterlineStrategy:
-    def __init__(self, error_type, viz):
+    def __init__(self, error_type, should_visualize):
         self.error_type = error_type
-        self.viz = viz
+
+        if should_visualize:
+            self.viz = Visualizer()
+        else:
+            self.viz = None
 
         self.cv_bridge = CvBridge()
         self.prev_offset = 0
@@ -51,12 +47,10 @@ class CenterlineStrategy:
         centerline = self.compute_centerline(left_limit, right_limit)
 
         # Compute crosshair
-        center_x = math.floor(cr_width / 2)
-        center_y = math.floor(cr_height / 2)
+        crosshair = (math.floor(cr_width / 2), math.floor(cr_height / 2))
 
         # Compute (very rough) position
-        position_x = center_x
-        position_y = cr_height - 1
+        position = (math.floor(cr_width / 2), cr_height - 1)
 
         if left_limit.size == 0 or right_limit.size == 0:
             rospy.logwarn("Can't compute centerline, reusing previous waypoint.")
@@ -64,99 +58,47 @@ class CenterlineStrategy:
             waypoint_offset = self.prev_offset
         else:
             # Detect waypoint (centerline point closest to crosshair)
-            waypoint, waypoint_offset = self.get_next_waypoint(
-                centerline, (center_x, center_y)
-            )
+            waypoint, waypoint_offset = self.get_next_waypoint(centerline, crosshair)
 
             self.prev_waypoint = waypoint
             self.prev_offset = waypoint_offset
 
+        # Compute the error
         if self.error_type == ErrorType.OFFSET:
-            err, offset = self.compute_offset_error(
-                waypoint, (center_x, center_y), cr_width / 2
-            )
+            err, offset = self.compute_offset_error(waypoint, crosshair, cr_width / 2)
         elif self.error_type == ErrorType.ANGLE:
-            err, angle = self.compute_angle_error(waypoint, (position_x, position_y))
+            err, angle = self.compute_angle_error(waypoint, position)
         else:
             rospy.logerr(f"Unknown error type. Exiting")
             rospy.signal_shutdown("")
 
-        # ugly beyond reason
-        if self.viz:
-            canvas = np.zeros((cr_height, cr_width, 3), dtype=np.uint8)
-
-            for point in left_limit:
-                cv.circle(canvas, point, 1, LEFT_LIMIT_COLOR, 1)
-
-            for point in right_limit:
-                cv.circle(canvas, point, 1, RIGHT_LIMIT_COLOR, 1)
-
-            for point in centerline:
-                cv.circle(canvas, point, 1, CENTERLINE_COLOR, 1)
-
-            cv.circle(canvas, (center_x, center_y), 3, CROSSHAIR_COLOR)
-
-            cv.circle(canvas, waypoint, 3, WAYPOINT_COLOR)
+        # Visualize data
+        if self.viz is not None:
+            self.viz.build_track_bg(
+                cr_height, cr_width, left_limit, right_limit, centerline
+            )
 
             if self.error_type == ErrorType.OFFSET:
-                cv.line(
-                    canvas,
-                    (center_x, center_y),
-                    waypoint,
-                    ERROR_AUX_COLOR,
-                    1,
-                )
-                cv.line(
-                    canvas,
-                    (center_x, center_y),
-                    (center_x, waypoint[1]),
-                    ERROR_AUX_COLOR,
-                    1,
-                )
-                cv.line(
-                    canvas,
-                    (center_x, waypoint[1]),
-                    waypoint,
-                    ERROR_COLOR,
-                    2,
-                )
-
+                self.viz.build_offset_error_overlay(crosshair, waypoint)
             elif self.error_type == ErrorType.ANGLE:
-                cv.ellipse(
-                    canvas,
-                    (position_x, position_y),
-                    (60, 60),
-                    180,
-                    90,
-                    90 + angle,
-                    ERROR_COLOR,
-                    2,
-                )
-                cv.line(
-                    canvas,
-                    (position_x, position_y),
-                    waypoint,
-                    ERROR_AUX_COLOR,
-                    1,
-                )
-                cv.line(
-                    canvas,
-                    (position_x, position_y),
-                    (center_x, center_y),
-                    ERROR_AUX_COLOR,
-                    1,
-                )
+                self.viz.build_angle_error_overlay(crosshair, waypoint, position, angle)
+            else:
+                rospy.logerr(f"Unknown error type. Exiting")
+                rospy.signal_shutdown("")
 
-            cv.imshow("Visualization", canvas)
-            cv.waitKey(1)
+            self.viz.show()
 
         return err
 
+    # Computes the x-axis offset between the crosshair and the waypoint,
+    #   maps it to the [-1, 1] range and returns it
     def compute_offset_error(self, waypoint, crosshair, max_offset):
         offset = waypoint[0] - crosshair[0]
         # Map the value obtained by remapping the offset to the [-1, 1] range
         return (offset + max_offset) / max_offset - 1, offset
 
+    # Computes the angle error between the crosshair and the waypoint,
+    #   maps it to the [-1, 1] range and returns it
     def compute_angle_error(self, waypoint, position):
         # Compute angle between centroid and heading
         dist = math.sqrt(
@@ -179,7 +121,7 @@ class CenterlineStrategy:
 
         # Detect track outline and draw it on a new image
         contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        cv.drawContours(track_outline, contours, 0, TRACK_OUTLINE_COLOR)
+        cv.drawContours(track_outline, contours, 0, colors.MAGENTA)
 
         return track_outline
 

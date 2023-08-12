@@ -51,6 +51,7 @@ class PlannerNode:
     def camera_callback(self, msg):
         # start = time.time()
 
+        # Compute the error based on the selected strategy and publish it
         err = self.strategy.plan(msg)
         if err == None:
             return
