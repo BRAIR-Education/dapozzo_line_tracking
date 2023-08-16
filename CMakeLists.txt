@@ -22,8 +22,12 @@ install(DIRECTORY launch
 )
 
 catkin_install_python(PROGRAMS
-  nodes/camera_node.py
-  nodes/control_node.py
-  nodes/manual_control_node.py
+  src/line_tracking/nodes/planner_node.py
+  src/line_tracking/nodes/control_node.py
+  src/line_tracking/nodes/manual_control_node.py
+  src/line_tracking/planning_strategies/centerline_strategy.py
+  src/line_tracking/planning_strategies/centroid_strategy.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+catkin_python_setup()

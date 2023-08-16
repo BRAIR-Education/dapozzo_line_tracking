@@ -1,0 +1,13 @@
+<!-- Launches the planner node -->
+
+<launch>
+    <arg name="viz" default="False"/>
+    <arg name="strategy" default="centroid"/>
+    <arg name="error_type" default="angle"/>
+
+    <node pkg="dapozzo_line_tracking" name="PlannerNode" type="planner_node.py" ns="line_tracking">
+        <param name="viz" value="$(arg viz)"/>
+        <param name="strategy" value="$(arg strategy)"/>
+        <param name="error_type" value="$(arg error_type)"/>
+    </node>
+</launch>

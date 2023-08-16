@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime
 import csv
 
@@ -7,11 +6,15 @@ import rospy
 import rospkg
 import std_msgs
 
+<<<<<<< HEAD:nodes/control_node.py
 # Wheel speed
 BASE_SPEED = 13
+=======
+MAX_THRUST = 15
+RAMP_UP = 0.5
+>>>>>>> parameterized:src/line_tracking/nodes/control_node.py
 
-MIN_CONTROL = -4
-MAX_CONTROL = 4
+TURNING_THRUST = 5
 
 
 # Controls the car in order to approach a given waypoint.
@@ -41,39 +44,41 @@ class ControlNode:
         self.time_start = 0
         self.time_prev = 0
 
-        self.started = False
+        self.thrust = 0
 
-        self.log_interval = 0.1
-        self.last_log = self.time_start
+        self.started = False
 
         # Publisher to control the left wheel
         self.left_wheel_pub = rospy.Publisher(
             "/car/front_left_velocity_controller/command",
             std_msgs.msg.Float64,
-            queue_size=1,
+            queue_size=10,
         )
 
         # Publisher to control the right wheel
         self.right_wheel_pub = rospy.Publisher(
             "/car/front_right_velocity_controller/command",
             std_msgs.msg.Float64,
-            queue_size=1,
+            queue_size=10,
         )
 
-        # Subscriber to the x-axis offset of the waypoint
-        self.offset_sub = rospy.Subscriber(
-            "/perception/waypoint_offset",
+        # Subscriber to the error
+        self.angle_sub = rospy.Subscriber(
+            "/planning/error",
             std_msgs.msg.Float32,
-            self.handle_offset_callback,
+            self.handle_error_callback,
         )
 
         rospy.loginfo("Control node initialized!")
 
-    # React to the current offset from the waypoint by returning
-    #   a new control command
-    def handle_offset_callback(self, msg):
+    # React to the newly received angle to be corrected
+    def handle_error_callback(self, msg):
         measurement = msg.data
-        time_now = time.time()
+        time_now = rospy.get_rostime()
+
+        if time_now == 0:
+            rospy.logwarn("get_rostime() returned 0. Skipping.")
+            return
 
         if self.started == False:
             self.time_start = time_now
@@ -81,16 +86,15 @@ class ControlNode:
             self.started = True
             return
 
-        elapsed = time_now - self.time_start
+        elapsed = (time_now - self.time_start).to_sec()
 
         # Check if we should stop
         if self.max_duration >= 0 and elapsed > self.max_duration:
-            rospy.loginfo("Max duration reached.")
+            rospy.logwarn("Max duration reached.")
             self.stop()
 
-        # We consider the provided offset as the error we want to reduce to 0
         error = measurement
-        dt = time_now - self.time_prev
+        dt = (time_now - self.time_prev).to_sec()
 
         if dt <= 0:
             return
@@ -105,22 +109,23 @@ class ControlNode:
         self.prev_error = error
         self.time_prev = time_now
 
-        if control > MAX_CONTROL:
-            rospy.logwarn("Output saturated! (HIGH)")
-            control = MAX_CONTROL
-        elif control < MIN_CONTROL:
-            rospy.logwarn("Output saturated! (LOW)")
-            control = MIN_CONTROL
+        # TODO: output saturation checks?
 
-        self.log_data(elapsed, dt, error, control, p_term, i_term, d_term)
-        self.publish_wheel_control(control)
+        if self.thrust < MAX_THRUST:
+            self.thrust += RAMP_UP
 
-    # Publishe the provided control command
-    def publish_wheel_control(self, control):
+        v_l = self.thrust + TURNING_THRUST * control
+        v_r = self.thrust - TURNING_THRUST * control
+
+        self.log_data(elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term)
+        self.publish_wheel_control(v_l, v_r)
+
+    # Publish the provided control command
+    def publish_wheel_control(self, v_l, v_r):
         msg = std_msgs.msg.Float64()
-        msg.data = control + BASE_SPEED
+        msg.data = v_l
         self.left_wheel_pub.publish(msg)
-        msg.data = -control + BASE_SPEED
+        msg.data = v_r
         self.right_wheel_pub.publish(msg)
 
     def open_logfile(self):
@@ -134,18 +139,15 @@ class ControlNode:
         field = ["Time", "dt", "Error", "CV", "LWheel", "RWheel", "P", "I", "D"]
         self.logwriter.writerow(field)
 
-    def log_data(self, elapsed, dt, error, control, p_term, i_term, d_term):
-        if time.time() - self.last_log < self.log_interval:
-            return
-
+    def log_data(self, elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term):
         self.logwriter.writerow(
             [
                 elapsed,
                 dt,
                 error,
                 control,
-                control + BASE_SPEED,
-                -control + BASE_SPEED,
+                v_l,
+                v_r,
                 p_term,
                 i_term,
                 d_term,
