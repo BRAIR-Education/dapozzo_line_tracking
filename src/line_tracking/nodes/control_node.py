@@ -6,13 +6,8 @@ import rospy
 import rospkg
 import std_msgs
 
-<<<<<<< HEAD:nodes/control_node.py
-# Wheel speed
-BASE_SPEED = 13
-=======
 MAX_THRUST = 15
 RAMP_UP = 0.5
->>>>>>> parameterized:src/line_tracking/nodes/control_node.py
 
 TURNING_THRUST = 5
 
