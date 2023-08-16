@@ -90,26 +90,6 @@ class CenterlineStrategy:
 
         return err
 
-    # Computes the x-axis offset between the crosshair and the waypoint,
-    #   maps it to the [-1, 1] range and returns it
-    def compute_offset_error(self, waypoint, crosshair, max_offset):
-        offset = waypoint[0] - crosshair[0]
-        # Map the value obtained by remapping the offset to the [-1, 1] range
-        return (offset + max_offset) / max_offset - 1, offset
-
-    # Computes the angle error between the crosshair and the waypoint,
-    #   maps it to the [-1, 1] range and returns it
-    def compute_angle_error(self, waypoint, position):
-        # Compute angle between centroid and heading
-        dist = math.sqrt(
-            (waypoint[0] - position[0]) ** 2 + (waypoint[1] - position[1]) ** 2
-        )
-        angle = math.asin((waypoint[0] - position[0]) / dist)
-        angle_deg = angle * 180 / math.pi
-
-        # Map the value obtained by remapping the angle from [-90, 90] to [-1, 1]
-        return (angle_deg + 90) / 90 - 1, angle_deg
-
     # Detect the track in the input image, draw its contour on a new binary image and return it
     def get_track_outline(self, input):
         height, width, _ = input.shape
@@ -125,6 +105,26 @@ class CenterlineStrategy:
 
         return track_outline
 
+    # Return the left and right track limits from the provided track outline
+    def extract_track_limits(self, track_outline):
+        # We expect 3 labels:
+        #   0: background
+        #   1: left track limit
+        #   2: right track limit
+        _, labels = cv.connectedComponents(track_outline)
+
+        left_limit_cols, left_limit_rows = np.where(labels == 1)
+        left_limit = np.column_stack((left_limit_rows, left_limit_cols))[
+            ::10  # only take one point every 10
+        ]
+
+        right_limit_cols, right_limit_rows = np.where(labels == 2)
+        right_limit = np.column_stack((right_limit_rows, right_limit_cols))[
+            ::10  # only take one point every 10
+        ]
+
+        return left_limit, right_limit
+
     # Compute the centerline given the left and right track limits and return it
     def compute_centerline(self, left, right):
         centerline = []
@@ -135,22 +135,6 @@ class CenterlineStrategy:
             centerline.append((xc, yc))
 
         return np.array(centerline)
-
-    # Return the left and right track limits from the provided track outline
-    def extract_track_limits(self, track_outline):
-        # We expect 3 labels:
-        #   0: background
-        #   1: left track limit
-        #   2: right track limit
-        _, labels = cv.connectedComponents(track_outline)
-
-        left_limit_cols, left_limit_rows = np.where(labels == 1)
-        left_limit = np.column_stack((left_limit_rows, left_limit_cols))[::10]
-
-        right_limit_cols, right_limit_rows = np.where(labels == 2)
-        right_limit = np.column_stack((right_limit_rows, right_limit_cols))[::10]
-
-        return left_limit, right_limit
 
     # Obtain the next waypoint based on crosshair position
     #   and return it along with its x-axis offset
@@ -173,3 +157,23 @@ class CenterlineStrategy:
                 closest = i
 
         return trajectory[closest], x - center_x
+
+    # Computes the x-axis offset between the crosshair and the waypoint,
+    #   maps it to the [-1, 1] range and returns it
+    def compute_offset_error(self, waypoint, crosshair, max_offset):
+        offset = waypoint[0] - crosshair[0]
+        # Map the value obtained by remapping the offset to the [-1, 1] range
+        return (offset + max_offset) / max_offset - 1, offset
+
+    # Computes the angle error between the crosshair and the waypoint,
+    #   maps it to the [-1, 1] range and returns it
+    def compute_angle_error(self, waypoint, position):
+        # Compute angle between centroid and heading
+        dist = math.sqrt(
+            (waypoint[0] - position[0]) ** 2 + (waypoint[1] - position[1]) ** 2
+        )
+        angle = math.asin((waypoint[0] - position[0]) / dist)
+        angle_deg = angle * 180 / math.pi
+
+        # Map the value obtained by remapping the angle from [-90, 90] to [-1, 1]
+        return (angle_deg + 90) / 90 - 1, angle_deg
