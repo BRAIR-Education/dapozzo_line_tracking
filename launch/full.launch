@@ -3,10 +3,14 @@
 <launch>
     <arg name="viz" default="False"/>
     <arg name="duration" default="-1"/>
+    <arg name="strategy" default="centroid"/>
+    <arg name="error_type" default="angle"/>
 
     <!-- Perception -->
-    <include file="$(find dapozzo_line_tracking)/launch/camera.launch">
+    <include file="$(find dapozzo_line_tracking)/launch/planner.launch">
         <arg name="viz" value="$(arg viz)"/>
+        <arg name="strategy" value="$(arg strategy)"/>
+        <arg name="error_type" value="$(arg error_type)"/>
     </include>
 
     <!-- Control -->
