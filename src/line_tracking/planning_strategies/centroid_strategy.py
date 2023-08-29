@@ -45,15 +45,8 @@ class CentroidStrategy:
             np.array(UPPER_YELLOW),
         )
 
-        # Find the track's contours
-        contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
-        if len(contours) < 1:
-            rospy.logwarn(f"No contours found, skipping.")
-            return None
-
         # Compute centroid
-        M = cv.moments(contours[0])
+        M = cv.moments(mask)
         if M["m00"] != 0:
             centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             self.prev_centroid = centroid
@@ -77,7 +70,7 @@ class CentroidStrategy:
 
             # Visualize data
         if self.viz is not None:
-            self.viz.build_contour_bg(image, contours)
+            self.viz.build_basic_bg(image)
 
             if self.error_type == ErrorType.OFFSET:
                 self.viz.build_offset_error_overlay(crosshair, centroid)

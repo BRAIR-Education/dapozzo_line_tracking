@@ -29,9 +29,8 @@ class Visualizer:
         for point in centerline:
             cv.circle(self.canvas, point, 1, colors.MAGENTA, 1)
 
-    # Build the background by drawing track contours on the provided image
-    def build_contour_bg(self, image, contours):
-        cv.drawContours(image, contours, -1, colors.MAGENTA, 2)
+    # Build the background by just using the provided image
+    def build_basic_bg(self, image):
         self.canvas = image
 
     # Overlay the current offset error on the background
