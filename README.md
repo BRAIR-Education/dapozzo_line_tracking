@@ -27,14 +27,11 @@ Available parameters (PID parameters are read from `config/pid_params.yaml`):
 - k_p: PID proportional gain;
 - k_i: PID integral gain;
 - k_d: PID derivative gain.
-- duration: how long this node should run for (in seconds). Useful for performing multiple runs of the same length.
+- duration: how long this node should run for (in seconds). Useful for performing multiple runs of the same length. The car automatically stops when the duration reaches 0.
 
 
 ### Manual Control Node
-The manual control node allows keyboard control of the car through the arrow keys.
+The manual control node allows for basic keyboard control of the car using the arrow keys.
 
 ## Logs
 Logs in `.csv` format can be found in the `logs` directory.
-
-## Plots
-Plots in `.png` format can be found in the `plots` directory.

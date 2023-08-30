@@ -1,8 +1,11 @@
 <!-- Launches the planner node -->
 
 <launch>
+    <!-- Whether to visualize debugging data -->
     <arg name="viz" default="False"/>
+    <!-- Planning strategy for waypoint selection -->
     <arg name="strategy" default="centroid"/>
+    <!-- Type of waypoint error to compute -->
     <arg name="error_type" default="angle"/>
 
     <node pkg="dapozzo_line_tracking" name="PlannerNode" type="planner_node.py" ns="line_tracking">

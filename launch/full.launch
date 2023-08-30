@@ -1,9 +1,13 @@
 <!-- Launches the simulation as well as all the nodes needed for the car to race -->
 
 <launch>
+    <!-- Whether to visualize debugging data -->
     <arg name="viz" default="False"/>
+    <!-- How long the node should run for. -1 indicates no limit -->
     <arg name="duration" default="-1"/>
+    <!-- Planning strategy for waypoint selection -->
     <arg name="strategy" default="centroid"/>
+    <!-- Type of waypoint error to compute -->
     <arg name="error_type" default="angle"/>
 
     <!-- Perception -->

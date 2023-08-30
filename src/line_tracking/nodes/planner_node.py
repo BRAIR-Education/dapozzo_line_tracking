@@ -48,6 +48,9 @@ class PlannerNode:
         rospy.loginfo("Planner node initialized!")
 
     # Called upon receiving raw camera input
+    #
+    # Arguments:
+    #   msg: message containing raw camera data
     def camera_callback(self, msg):
         # start = time.time()
 

@@ -18,7 +18,14 @@ LOWER_YELLOW = (20, 50, 50)
 UPPER_YELLOW = (30, 255, 255)
 
 
+# This planning strategy revolves around finding the track's
+#   centerline and choosing waypoints along it.
 class CenterlineStrategy:
+    # Initialize the strategy
+    #
+    # Arguments:
+    #   error_type: type of offset error to compute
+    #   should_visualize: whether to visualize debug data in a separate window
     def __init__(self, error_type, should_visualize):
         self.error_type = error_type
 
@@ -31,6 +38,13 @@ class CenterlineStrategy:
         self.prev_offset = 0
         self.prev_waypoint = (0, 0)
 
+    # Apply the strategy to the provided image and return the waypoint error
+    #
+    # Arguments:
+    #   img_msg: image from which to extract the track
+    #
+    # Returns:
+    #   waypoint error based on the desired error type
     def plan(self, img_msg):
         image = self.cv_bridge.imgmsg_to_cv2(img_msg, desired_encoding="bgr8")
         height, width, _ = image.shape
@@ -46,7 +60,7 @@ class CenterlineStrategy:
         left_limit, right_limit = self.extract_track_limits(cropped_outline)
         centerline = self.compute_centerline(left_limit, right_limit)
 
-        # Compute crosshair
+        # Compute crosshair to keep track of the center of the screen
         crosshair = (math.floor(cr_width / 2), math.floor(cr_height / 2))
 
         # Compute (very rough) position
@@ -57,7 +71,7 @@ class CenterlineStrategy:
             waypoint = self.prev_waypoint
             waypoint_offset = self.prev_offset
         else:
-            # Detect waypoint (centerline point closest to crosshair)
+            # Pick a waypoint
             waypoint, waypoint_offset = self.get_next_waypoint(centerline, crosshair)
 
             self.prev_waypoint = waypoint
@@ -91,6 +105,12 @@ class CenterlineStrategy:
         return err
 
     # Detect the track in the input image, draw its contour on a new binary image and return it
+    #
+    # Arguments:
+    #   input: image from which to extract the track
+    #
+    # Returns:
+    #   image depicting the track outline
     def get_track_outline(self, input):
         height, width, _ = input.shape
         track_outline = np.zeros((height, width), dtype=np.uint8)
@@ -106,6 +126,12 @@ class CenterlineStrategy:
         return track_outline
 
     # Return the left and right track limits from the provided track outline
+    #
+    # Arguments:
+    #   track_outline: image containing the track outline
+    #
+    # Returns:
+    #   two arrays containing respectively the left and right track limits
     def extract_track_limits(self, track_outline):
         # We expect 3 labels:
         #   0: background
@@ -126,6 +152,13 @@ class CenterlineStrategy:
         return left_limit, right_limit
 
     # Compute the centerline given the left and right track limits and return it
+    #
+    # Arguments:
+    #   left: array containing the left track limit
+    #   right: array containing the right track limit
+    #
+    # Returns:
+    #   array containing the centerline
     def compute_centerline(self, left, right):
         centerline = []
         for (x1, y1), (x2, y2) in list(zip(left, right)):
@@ -138,6 +171,15 @@ class CenterlineStrategy:
 
     # Obtain the next waypoint based on crosshair position
     #   and return it along with its x-axis offset
+    #
+    # Arguments:
+    #   trajectory: array containing the trajectory from which
+    #       to extract a waypoint
+    #
+    #   crosshair: center of the screen
+    #
+    # Returns:
+    #   a waypoint
     def get_next_waypoint(self, trajectory, crosshair):
         if trajectory.size == 0:
             return crosshair, 0
@@ -158,17 +200,33 @@ class CenterlineStrategy:
 
         return trajectory[closest], x - center_x
 
-    # Computes the x-axis offset between the crosshair and the waypoint,
+    # Computes the x-axis offset to the waypoint,
     #   maps it to the [-1, 1] range and returns it
+    #
+    # Arguments:
+    #   waypoint: waypoint to reach
+    #   crosshair: center of the screen
+    #   max_offset: maximum value of the offset, used for remapping it in [-1, 1]
+    #
+    # Returns:
+    #   x-axis offset between crosshair and waypoint
     def compute_offset_error(self, waypoint, crosshair, max_offset):
         offset = waypoint[0] - crosshair[0]
         # Map the value obtained by remapping the offset to the [-1, 1] range
         return (offset + max_offset) / max_offset - 1, offset
 
-    # Computes the angle error between the crosshair and the waypoint,
+    # Computes the angle error to the waypoint,
     #   maps it to the [-1, 1] range and returns it
+    #
+    # Arguments:
+    #   waypoint: waypoint to reach
+    #   position: position of the car
+    #
+    # Returns:
+    #   angle between the vertical line passing through the car's position and
+    #   the center of the screen and the line connecting the waypoint with the car's position
     def compute_angle_error(self, waypoint, position):
-        # Compute angle between centroid and heading
+        # Compute angle
         dist = math.sqrt(
             (waypoint[0] - position[0]) ** 2 + (waypoint[1] - position[1]) ** 2
         )

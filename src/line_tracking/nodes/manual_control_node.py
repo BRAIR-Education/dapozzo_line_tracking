@@ -28,7 +28,10 @@ class ManualControlnode:
 
         rospy.loginfo("Manual control node initialized!")
 
-    # Implements basic keyboard control
+    # Implements basic keyboard control for testing purposes
+    #
+    # Arguments:
+    #   key: key pressed by the user
     def on_press(self, key):
         # Turn left
         if key == keyboard.Key.left:

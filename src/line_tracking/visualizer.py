@@ -17,6 +17,13 @@ class Visualizer:
         self.canvas = None
 
     # Build the background by drawing the track bounds and the centerline
+    #
+    # Arguments:
+    #   height: canvas height
+    #   width: canvas width
+    #   left_limit: left track boundary
+    #   right_limit: right track boundary
+    #   centerline: track centerline
     def build_track_bg(self, height, width, left_limit, right_limit, centerline):
         self.canvas = np.zeros((height, width, 3), dtype=np.uint8)
 
@@ -30,10 +37,17 @@ class Visualizer:
             cv.circle(self.canvas, point, 1, colors.MAGENTA, 1)
 
     # Build the background by just using the provided image
+    #
+    # Arguments:
+    #   image: image to use as background
     def build_basic_bg(self, image):
         self.canvas = image
 
     # Overlay the current offset error on the background
+    #
+    # Arguments:
+    #   crosshair: center of the screen
+    #   waypoint: current waypoint
     def build_offset_error_overlay(self, crosshair, waypoint):
         if self.canvas is None:
             raise EmptyCanvasException()
@@ -73,6 +87,12 @@ class Visualizer:
         cv.circle(self.canvas, waypoint, 5, colors.WHITE, 2)
 
     # Overlay the current angle error on the background
+    #
+    # Arguments:
+    #   crosshair: center of the screen
+    #   waypoint: current waypoint
+    #   position: car position
+    #   angle: angle to be drawn
     def build_angle_error_overlay(self, crosshair, waypoint, position, angle):
         if self.canvas is None:
             raise EmptyCanvasException()

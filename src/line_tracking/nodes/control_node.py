@@ -67,6 +67,9 @@ class ControlNode:
         rospy.loginfo("Control node initialized!")
 
     # React to the newly received angle to be corrected
+    #
+    # Arguments:
+    #   msg: message containing the error to be fed into the PID
     def handle_error_callback(self, msg):
         measurement = msg.data
         time_now = rospy.get_rostime()
@@ -116,6 +119,10 @@ class ControlNode:
         self.publish_wheel_control(v_l, v_r)
 
     # Publish the provided control command
+    #
+    # Arguments:
+    #   v_l: new left wheel speed
+    #   v_r: new right wheel speed
     def publish_wheel_control(self, v_l, v_r):
         msg = std_msgs.msg.Float64()
         msg.data = v_l
@@ -123,6 +130,7 @@ class ControlNode:
         msg.data = v_r
         self.right_wheel_pub.publish(msg)
 
+    # Create a new log file
     def open_logfile(self):
         pkgdir = self.rospack.get_path("dapozzo_line_tracking")
         date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
@@ -134,6 +142,18 @@ class ControlNode:
         field = ["Time", "dt", "Error", "CV", "LWheel", "RWheel", "P", "I", "D"]
         self.logwriter.writerow(field)
 
+    # Write data to the log file
+    #
+    # Arguments:
+    #   elapsed: time elapsed since the launch of the control node
+    #   dt: time elapsed since the last iteration
+    #   error: waypoint error
+    #   control: PID output
+    #   v_l: left wheel speed
+    #   v_r: right wheel speed
+    #   p_term: proportional PID term
+    #   i_term: integral PID term
+    #   d_term: derivative PID term
     def log_data(self, elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term):
         self.logwriter.writerow(
             [

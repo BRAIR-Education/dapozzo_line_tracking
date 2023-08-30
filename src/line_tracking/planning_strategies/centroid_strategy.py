@@ -20,6 +20,11 @@ UPPER_YELLOW = (30, 255, 255)
 # This planning strategy revolves around finding the centroid
 #  of the track at each iteration and using it as waypoint.
 class CentroidStrategy:
+    # Initialize the strategy
+
+    # Arguments:
+    #   error_type: type of offset error to compute
+    #   should_visualize: whether to visualize debug data in a separate window
     def __init__(self, error_type, should_visualize):
         self.error_type = error_type
 
@@ -33,6 +38,13 @@ class CentroidStrategy:
         self.prev_centroid_x = 0
         self.prev_centroid_y = 0
 
+    # Apply the strategy to the provided image and return the waypoint error
+    #
+    # Arguments:
+    #   img_msg: image from which to extract the track
+    #
+    # Returns:
+    #   waypoint error based on the desired error type
     def plan(self, img_msg):
         image = self.cv_bridge.imgmsg_to_cv2(img_msg, desired_encoding="bgr8")
         height, width, _ = image.shape
@@ -84,11 +96,31 @@ class CentroidStrategy:
 
         return err
 
+    # Computes the x-axis offset to the waypoint,
+    #   maps it to the [-1, 1] range and returns it
+    #
+    # Arguments:
+    #   waypoint: waypoint to reach
+    #   crosshair: center of the screen
+    #   max_offset: maximum value of the offset, used for remapping it in [-1, 1]
+    #
+    # Returns:
+    #   x-axis offset between crosshair and waypoint
     def compute_offset_error(self, waypoint, crosshair, max_offset):
         offset = waypoint[0] - crosshair[0]
         # Map the value obtained by remapping the offset to the [-1, 1] range
         return (offset + max_offset) / max_offset - 1, offset
 
+    # Computes the angle error to the waypoint,
+    #   maps it to the [-1, 1] range and returns it
+    #
+    # Arguments:
+    #   waypoint: waypoint to reach
+    #   position: position of the car
+    #
+    # Returns:
+    #   angle between the vertical line passing through the car's position and
+    #   the center of the screen and the line connecting the waypoint with the car's position
     def compute_angle_error(self, waypoint, position):
         # Compute angle between centroid and heading
         dist = math.sqrt(
