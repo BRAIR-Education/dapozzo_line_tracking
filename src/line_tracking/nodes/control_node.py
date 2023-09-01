@@ -32,7 +32,9 @@ class ControlNode:
 
         # Logging utilities
         self.rospack = rospkg.RosPack()
-        self.open_logfile()
+        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        self.open_logfile(date)
+        self.open_performance_evaluation_file(date)
 
         # Other PID variables
         self.setpoint = 0
@@ -46,6 +48,8 @@ class ControlNode:
         self.thrust = 0
 
         self.started = False
+
+        self.ISE = 0
 
         # Publisher to control the left wheel
         self.left_wheel_pub = rospy.Publisher(
@@ -62,7 +66,7 @@ class ControlNode:
         )
 
         # Subscriber to the error
-        self.angle_sub = rospy.Subscriber(
+        self.error_sub = rospy.Subscriber(
             "/planning/error",
             std_msgs.msg.Float32,
             self.handle_error_callback,
@@ -97,6 +101,8 @@ class ControlNode:
 
         error = measurement
         dt = (time_now - self.time_prev).to_sec()
+
+        self.ISE += error * error * dt
 
         if dt <= 0:
             return
@@ -137,16 +143,28 @@ class ControlNode:
         self.right_wheel_pub.publish(msg)
 
     # Create a new log file
-    def open_logfile(self):
+    def open_logfile(self, date):
         pkgdir = self.rospack.get_path("dapozzo_line_tracking")
-        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         pid_params = f"{self.k_p}-{self.k_i}-{self.k_d}".replace(".", ",")
         filepath = os.path.join(pkgdir, "logs", f"pid_log_{date}_[{pid_params}].csv")
 
         self.logfile = open(filepath, "w+")
-        self.logwriter = csv.writer(self.logfile)
+        self.log_writer = csv.writer(self.logfile)
         field = ["Time", "dt", "Error", "CV", "LWheel", "RWheel", "P", "I", "D"]
-        self.logwriter.writerow(field)
+        self.log_writer.writerow(field)
+
+    # Create a new performance evaluation file
+    def open_performance_evaluation_file(self, date):
+        pkgdir = self.rospack.get_path("dapozzo_line_tracking")
+        pid_params = f"{self.k_p}-{self.k_i}-{self.k_d}".replace(".", ",")
+        filepath = os.path.join(
+            pkgdir, "logs", "evaluations", f"evaluation_{date}_[{pid_params}].csv"
+        )
+
+        self.evaluation_file = open(filepath, "w+")
+        self.performance_index_writer = csv.writer(self.evaluation_file)
+        field = ["ISE"]
+        self.performance_index_writer.writerow(field)
 
     # Write data to the log file
     #
@@ -161,9 +179,16 @@ class ControlNode:
     #   i_term: integral PID term
     #   d_term: derivative PID term
     def log_data(self, elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term):
-        self.logwriter.writerow(
+        self.log_writer.writerow(
             [elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term]
         )
+
+    # Write performance indices to file
+    #
+    # Arguments:
+    #   ISE: integral square error index
+    def log_performance_indices(self, ISE):
+        self.performance_index_writer.writerow([ISE])
 
     # Stop the car
     def stop(self):
@@ -175,7 +200,11 @@ class ControlNode:
             self.left_wheel_pub.publish(msg)
             self.right_wheel_pub.publish(msg)
 
+        self.log_performance_indices(self.ISE)
+
         self.logfile.close()
+        self.evaluation_file.close()
+
         rospy.loginfo("Control node shutting down.")
         rospy.signal_shutdown("Duration limit reached.")
 
