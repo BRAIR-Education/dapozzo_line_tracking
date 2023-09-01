@@ -6,14 +6,16 @@ import rospy
 import rospkg
 import std_msgs
 
-MAX_THRUST = 15
-RAMP_UP = 0.5
 
-TURNING_THRUST = 5
+MAX_THRUST = 15  # Maximum base wheel speed
+RAMP_UP = 0.5  # Acceleration step
+
+TURNING_THRUST = 5  # Speed devoted to turning
 
 
 # Controls the car in order to approach a given waypoint.
 class ControlNode:
+    # Initialize the control node
     def __init__(self):
         # Time to run for. Useful for doing multiple runs with the same duration.
         #   -1 indicates no limit.
@@ -39,6 +41,8 @@ class ControlNode:
         self.time_start = 0
         self.time_prev = 0
 
+        # Initial base wheel thrust
+        #   This will slowly accelerate up to MAX_THRUST
         self.thrust = 0
 
         self.started = False
@@ -99,6 +103,7 @@ class ControlNode:
 
         self.accumulated_integral += error * dt
 
+        # Compute PID output
         p_term = self.k_p * error
         i_term = self.k_i * self.accumulated_integral
         d_term = self.k_d * (error - self.prev_error) / dt
@@ -109,6 +114,7 @@ class ControlNode:
 
         # TODO: output saturation checks?
 
+        # Gradually increase base thrust to prevent sudden accelerations at the beginning
         if self.thrust < MAX_THRUST:
             self.thrust += RAMP_UP
 
@@ -156,17 +162,7 @@ class ControlNode:
     #   d_term: derivative PID term
     def log_data(self, elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term):
         self.logwriter.writerow(
-            [
-                elapsed,
-                dt,
-                error,
-                control,
-                v_l,
-                v_r,
-                p_term,
-                i_term,
-                d_term,
-            ]
+            [elapsed, dt, error, control, v_l, v_r, p_term, i_term, d_term]
         )
 
     # Stop the car
