@@ -102,12 +102,13 @@ class ControlNode:
         error = measurement
         dt = (time_now - self.time_prev).to_sec()
 
-        self.ISE += error * error * dt
+        self.ISE += dt * (error * error + self.prev_error * self.prev_error) / 2
 
         if dt <= 0:
             return
 
-        self.accumulated_integral += error * dt
+        # Approximate the integral using trapezoids
+        self.accumulated_integral += dt * (error + self.prev_error) / 2
 
         # Compute PID output
         p_term = self.k_p * error
