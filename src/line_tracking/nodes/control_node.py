@@ -7,7 +7,7 @@ import rospkg
 import std_msgs
 
 
-MAX_THRUST = 15  # Maximum base wheel speed
+MAX_THRUST = 10  # Maximum base wheel speed
 RAMP_UP = 0.5  # Acceleration step
 
 TURNING_THRUST = 5  # Speed devoted to turning
